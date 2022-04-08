@@ -1,4 +1,4 @@
-function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phase_obs, phase_obs_err, N, N_refresh, N_burn_in, rms_target, std_target, N_end, n)
+function [model_cell, model_grid, end_flag, model_ind] = ConstD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phase_obs, phase_obs_err, N, N_refresh, N_burn_in, rms_target, std_target, N_end, n)
 % 单马尔科夫链程序——固定维
 
 % N = 1E6; % 最大迭代次数
