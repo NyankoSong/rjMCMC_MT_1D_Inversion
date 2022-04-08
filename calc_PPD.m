@@ -1,15 +1,15 @@
 function model_grid = calc_PPD(model_cell, z_mesh, rho_mesh)
-%CALC_PPD ¼ÆËãºóÑé¸ÅÂÊÃÜ¶È
-% ÔİÊ±Î´Ìí¼ÓÏÈÑéÊı¾İ
+%CALC_PPD è®¡ç®—åéªŒæ¦‚ç‡å¯†åº¦
+% æš‚æ—¶æœªæ·»åŠ å…ˆéªŒæ•°æ®
 
-model_len = length(model_cell); % Ä£ĞÍÊı
-mesh_layers_n = length(z_mesh); % Íø¸ñ²ãÊı
+model_len = length(model_cell); % æ¨¡å‹æ•°
+mesh_layers_n = length(z_mesh); % ç½‘æ ¼å±‚æ•°
 model_layers_vec_cell = cell(mesh_layers_n, 1);
-lh_vec = [model_cell{:, 3}]'; % ËÆÈ»¶ÈÁĞÏòÁ¿
-mesh_rho_n = length(rho_mesh); % µç×èÍø¸ñÊı
-model_grid = zeros(mesh_layers_n, mesh_rho_n); % ºóÑé¸ÅÂÊÃÜ¶È
+lh_vec = [model_cell{:, 3}]'; % ä¼¼ç„¶åº¦åˆ—å‘é‡
+mesh_rho_n = length(rho_mesh); % ç”µé˜»ç½‘æ ¼æ•°
+model_grid = zeros(mesh_layers_n, mesh_rho_n); % åéªŒæ¦‚ç‡å¯†åº¦
 
-% ÖØĞÂÕûÀí³ÉÃ¿²ãÒ»¸öÏòÁ¿£¨TODO:µÍĞ§£¬¿¼ÂÇÉ¾³ı£©
+% é‡æ–°æ•´ç†æˆæ¯å±‚ä¸€ä¸ªå‘é‡ï¼ˆTODO:ä½æ•ˆï¼Œè€ƒè™‘åˆ é™¤ï¼‰
 for mesh_n_ind = 1:mesh_layers_n
     model_layers_vec_cell{mesh_n_ind} = zeros(mesh_layers_n, 1);
     for model_ind = 1:model_len
@@ -17,17 +17,17 @@ for mesh_n_ind = 1:mesh_layers_n
         z_ind = find(zk >= 0, 1);
         model_layers_vec_cell{mesh_n_ind}(model_ind) = model_cell{model_ind, 2}(z_ind);
     end
-    disp(['ÕûÀíÖĞ...', num2str(mesh_n_ind*100/mesh_layers_n), '%'])
+    disp(['æ•´ç†ä¸­...', num2str(mesh_n_ind*100/mesh_layers_n), '%'])
 end
 
-% °´²ã¼ÆËãºóÑé¸ÅÂÊÃÜ¶È£¨TODO:µÍĞ§£¬¿¼ÂÇÕûºÏ£©
+% æŒ‰å±‚è®¡ç®—åéªŒæ¦‚ç‡å¯†åº¦ï¼ˆTODO:ä½æ•ˆï¼Œè€ƒè™‘æ•´åˆï¼‰
 for mesh_n_ind = 1:mesh_layers_n
     model_layer_vec_k = model_layers_vec_cell{mesh_n_ind};
     model_layer_rho_k_unique = unique([model_layers_vec_cell{mesh_n_ind}])';
     for rho_k = model_layer_rho_k_unique
         model_grid(mesh_n_ind, find(rho_mesh == rho_k, 1)) = sum(lh_vec(model_layer_vec_k == rho_k));
     end
-    disp(['¼ÆËãÖĞ...', num2str(mesh_n_ind*100/mesh_layers_n), '%'])
+    disp(['è®¡ç®—ä¸­...', num2str(mesh_n_ind*100/mesh_layers_n), '%'])
 end
 
 % end

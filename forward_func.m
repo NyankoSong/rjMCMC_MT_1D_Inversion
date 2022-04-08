@@ -1,22 +1,22 @@
 function [rho_a_log, phase] = forward_func(m_log, z_log, f_obs)
-%FORWARD_FUNC ´óµØµç´ÅÒ»Î¬ÕıÑİ³ÌĞò
-% m Ä£ĞÍ z ÏÂ½çÃæÉî¶È d ÕıÑİÏìÓ¦ÏòÁ¿
+%FORWARD_FUNC å¤§åœ°ç”µç£ä¸€ç»´æ­£æ¼”ç¨‹åº
+% m æ¨¡å‹ z ä¸‹ç•Œé¢æ·±åº¦ d æ­£æ¼”å“åº”å‘é‡
 m = 10.^m_log;
 z = 10.^z_log;
 
-mu0 = 4*pi*10^-7; % Õæ¿Õ´Åµ¼ÂÊ
-h = [z(1); z(2:end)-z(1:end-1)]; % ²ãºñ¶È
+mu0 = 4*pi*10^-7; % çœŸç©ºç£å¯¼ç‡
+h = [z(1); z(2:end)-z(1:end-1)]; % å±‚åšåº¦
 
 R = ones(length(f_obs), 1);
 
-for j = (length(m)-1):-1:1 % ÕıÑİ
+for j = (length(m)-1):-1:1 % æ­£æ¼”
     Ri = sqrt(m(j+1)/m(j))*R;
     L = (1-Ri)./(1+Ri);
     Li = L .* exp(-2*sqrt(-2i*pi*f_obs*mu0/m(j))*h(j));
     R = (1-Li)./(1+Li);
 end
-rho_a_log = log10(m(1)*abs(R).^2); % ÊÓµç×èÂÊ
+rho_a_log = log10(m(1)*abs(R).^2); % è§†ç”µé˜»ç‡
 Z = R .* -sqrt(2i*pi*f_obs*mu0*m(1));
-% phase = atan(imag(Z)./real(Z))*180/pi; % ÏàÎ»
-phase = -atan2(real(Z), -imag(Z))*180/pi; % ´Ë´¦Ëã·¨¿ÉÄÜÊÇÓĞÎÊÌâµÄ£¬µ«ÊÇ½á¹ûÕıÈ·
+% phase = atan(imag(Z)./real(Z))*180/pi; % ç›¸ä½
+phase = -atan2(real(Z), -imag(Z))*180/pi; % æ­¤å¤„ç®—æ³•å¯èƒ½æ˜¯æœ‰é—®é¢˜çš„ï¼Œä½†æ˜¯ç»“æœæ­£ç¡®
 end

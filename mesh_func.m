@@ -1,5 +1,5 @@
 function ovar = mesh_func(ivar, var_mesh)
-%MESH_FUNC ½«Êı¾İÔ¼»¯µ½Íø¸ñÉÏ
+%MESH_FUNC å°†æ•°æ®çº¦åŒ–åˆ°ç½‘æ ¼ä¸Š
 % 
 
 len = length(ivar);

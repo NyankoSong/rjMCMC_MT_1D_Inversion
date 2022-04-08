@@ -1,10 +1,10 @@
 function lh = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, m_log, z_log, k_phs, k_err)
-%LIKELIHOOD_FUNC ËÆÈ»º¯Êý
-% lh ËÆÈ»¶È
+%LIKELIHOOD_FUNC ä¼¼ç„¶å‡½æ•°
+% lh ä¼¼ç„¶åº¦
 
 [d_log, phs] = forward_func(m_log, z_log, f_obs);
 
-% TODO:µ÷ÕûÏàÎ»È¨ÖØ²ÎÊý
+% TODO:è°ƒæ•´ç›¸ä½æƒé‡å‚æ•°
 phi = norm((Cd^(-1/2))*([d_log; phs.*k_phs]-[d_obs_log; phs_obs.*k_phs]) .* k_err);
 % phi = norm((Cd^(-1/2))*(d_log-d_obs_log));
 

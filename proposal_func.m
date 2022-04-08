@@ -1,8 +1,8 @@
 function ovar = proposal_func(ilgv, flag, var_mesh)
-%PROPOSAL_FUNC ½¨Òé·Ö²¼º¯Êý
-% var ÐèÒªÈÅ¶¯µÄ²ÎÊý flag ÈÅ¶¯²ÎÊýÀàÐÍ£¨rho¡¢z£©
+%PROPOSAL_FUNC å»ºè®®åˆ†å¸ƒå‡½æ•°
+% var éœ€è¦æ‰°åŠ¨çš„å‚æ•° flag æ‰°åŠ¨å‚æ•°ç±»åž‹ï¼ˆrhoã€zï¼‰
 
-% ¶ÔÊýÈÅ¶¯
+% å¯¹æ•°æ‰°åŠ¨
 olgv = -1;
 while olgv <= 0
     if strcmp(flag, 'rho')
