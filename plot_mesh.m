@@ -70,12 +70,12 @@ set(figure(2), 'Position', [50, 200, 320, 480])
 
 bar(model_n_hist(:, 2));
 grid on
-axis([0, 26, 0, 0.35])
+axis([4-model_n_hist(1), 30-model_n_hist(1), 0, 0.35])
 title('模型维数概率密度柱状图')
 xlabel('模型层数')
 ylabel('概率')
-xticks(1:5:length(model_n_hist))
-xticklabels(num2str(model_n_hist(1:5:end, 1)));
+xticks(6-model_n_hist(1):5:length(model_n_hist))
+xticklabels(num2str(model_n_hist(1:5:end, 1) - (model_n_hist(1, 1) - 5)));
 
 % %% 3
 % figure(3)

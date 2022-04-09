@@ -11,11 +11,14 @@ N_refresh = 1E3; % 刷新间隔次数
 rms_target = 1; % 目标RMS误差
 std_target = 0.05; % 期望标准差上限
 N_end = 1E4; % 判定终止范围
-k_punish = 1; % 罚参数（<1时为倾向更少层数）
-k_Cd = 0.5; % 数据协方差矩阵邻层关联参数
-k_phs = 0.04; % 相位权重系数 TODO:改为相对误差而非绝对误差
-k_err = 500; % 容差系数
-z_smooth_log = 2; % 模型平滑参数：强相关层间距（暂定为1σ）
+k_punish = 0.9; % 罚参数（<1时为倾向更少层数）
+k_Cd = 0.3; % 强相关频率差（暂定为1σ）
+k_phs = 0.05; % 相位权重系数 TODO:改为相对误差而非绝对误差
+k_err = 15; % 容差系数
+
+% Cm逻辑不正确
+% k_smooth = 1; % 平滑系数
+% z_smooth_log = 1; % 强相关层间距（暂定为1σ）
 
 % 初始化参数
 N_iter_sum = 0;
@@ -30,7 +33,7 @@ for i = 1:n_test
     
     t_main = tic;
     while end_flag == 1
-        [model_cell, model_grid, end_flag, N_iter] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, k_Cd, k_phs, k_err, z_smooth_log, m_test, z_test);
+        [model_cell, model_grid, end_flag, N_iter] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, k_Cd, k_phs, k_err, m_test, z_test);
         N_iter_sum = N_iter_sum + N_iter;
         
         % 若只进行一次迭代则取消下行注释

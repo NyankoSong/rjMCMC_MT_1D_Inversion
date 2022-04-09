@@ -1,4 +1,4 @@
-function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, k_Cd, k_phs, k_err, z_smooth_log, m_test, z_test)
+function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, k_Cd, k_phs, k_err, m_test, z_test)
 % 单马尔科夫链程序——可变维
 % end_flag % 迭代结束时是否达标
 
@@ -12,7 +12,7 @@ function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh
 % k_err = 1E4; % 容差系数
 % z_smooth_log = 0.2; % 模型平滑参数
 print_flag = 0; % 是否输出帧到./Frames/tmp
-plot_flag = 0; % 是否实时进行制图
+plot_flag = 1; % 是否实时进行制图
 
 if nargin < 17
     test_flag = 0;
@@ -29,9 +29,11 @@ end
 
 % 生成数据协方差矩阵
 len = length(d_obs_log);
-Cd = (diag(linspace(1, 1, len*2), 0) + diag(linspace(k_Cd, k_Cd, len*2-1), 1) + diag(linspace(k_Cd, k_Cd, len*2-1), -1));
-Cd(end/2, end/2+1) = 0;
-Cd(end/2+1, end/2) = 0;
+% Cd = (diag(linspace(1, 1, len*2), 0) + diag(linspace(k_Cd, k_Cd, len*2-1), 1) + diag(linspace(k_Cd, k_Cd, len*2-1), -1));
+% Cd(end/2, end/2+1) = 0;
+% Cd(end/2+1, end/2) = 0;
+Cd_part = generate_cov(len, log10(f_obs), k_Cd);
+Cd = [Cd_part, zeros(len); zeros(len), Cd_part];
 
 % 处理网格
 z_mesh_log = log10(z_mesh);
@@ -59,9 +61,9 @@ model_average_log_std = NaN;
 
 lh = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, m_log, z_log, k_phs, k_err); % 计算初始模型的似然函数
 
-% 先验测试
-Cm = model_cov(n, z_log, z_smooth_log);
-prior_probability = exp(-norm((Cm^(-1/2))*m_log)/2);
+% Cm = model_cov(n, z_log, z_smooth_log); % 模型协方差
+% prior_probability = exp(-norm((Cm^-(1/2))*m_log*k_smooth)^2/2) * ((2*pi)^(-n/2) * norm(Cm)^(-1/2)); % 先验（仅包含平滑）
+prior_probability = 1;
 ppd = lh * prior_probability;
 
 model_cell = cell(N, 4);
@@ -85,7 +87,7 @@ while model_ind < N
         n_rnd = randi(n_new);
         m_log_new(n_rnd) = proposal_func(m_log_new(n_rnd), 'rho', rho_mesh_log);
         operation = 1;
-        if min(m_log_new) < rho_mesh_log(2)
+        if min(m_log_new) < rho_mesh_log(2) || max(m_log_new) > rho_mesh_log(end-1)
             continue;
         end
         lh_new = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, m_log_new, z_log_new, k_phs, k_err);
@@ -132,8 +134,9 @@ while model_ind < N
         end
     end
     
-    Cm_new = model_cov(n_new, z_log_new, z_smooth_log);
-    prior_probability_new = exp(-norm((Cm_new^(-1/2))*m_log_new)/2);
+%     Cm_new = model_cov(n_new, z_log_new, z_smooth_log);
+%     prior_probability_new = exp(-norm((Cm_new^(-1/2))*m_log_new)/2);
+    prior_probability_new = 1;
     ppd_new = lh_new * prior_probability_new;
     
     if rand < ppd_new/ppd && length(z_log_new) == length(unique(z_log_new)) && isequal(z_log_new, sort(z_log_new)) && max(m_log_new) < rho_mesh(end)
