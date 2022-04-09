@@ -6,16 +6,16 @@ test_flag = 1;
 set(figure(1), 'Position', [50, 200, 1280, 480])
 [x, y] = meshgrid(rho_mesh, z_mesh);
 subplot(1, 4, 1); % 模型
-loglog(model_average, z_mesh)
+loglog(model_average, z_mesh, 'LineWidth', 1)
 set(gca, 'YDir', 'reverse');
 axis([rho_mesh(1), rho_mesh(end), z_mesh(1), z_mesh(end)]);
 grid on
 hold on
-loglog(model_max, z_mesh, 'r')
+loglog(model_max, z_mesh, 'r', 'LineWidth', 1)
 if test_flag == 1
-    plot([m_test(1), m_test(1)], [z_mesh(1), z_test(1)], 'k--')
-    stairs(m_test, z_test, 'k--');
-    plot([m_test(end), m_test(end)], [z_test(end-1), z_mesh(end)], 'k--');
+    plot([m_test(1), m_test(1)], [z_mesh(1), z_test(1)], 'k--', 'LineWidth', 1)
+    stairs(m_test, z_test, 'k--', 'LineWidth', 1);
+    plot([m_test(end), m_test(end)], [z_test(end-1), z_mesh(end)], 'k--', 'LineWidth', 1);
     
     legend('PPD期望', 'PPD峰值', '测试模型')
 else
@@ -38,11 +38,11 @@ title('PPD伪彩色图')
 xlabel('电阻率')
 
 subplot(1, 4, 3); % 正演视电阻率
-semilogy(rho_average_log, f_obs)
+semilogy(rho_average_log, f_obs, 'LineWidth', 1)
 axis([log10(rho_mesh(1)), log10(rho_mesh(end)), f_obs(1), f_obs(end)]);
 grid on
 hold on
-semilogy(rho_max_log, f_obs, 'r')
+semilogy(rho_max_log, f_obs, 'r', 'LineWidth', 1)
 errorbar(d_obs_log, f_obs, d_obs_err_log, 'horizontal', 'ko')
 xticks(linspace(log10(rho_mesh(1)), log10(rho_mesh(end)), log10(rho_mesh(end))+1))
 xticklabels(['{10^0}'; '{10^1}'; '{10^2}'; '{10^3}'; '{10^4}'; '{10^5}'; '{10^6}'])
@@ -53,11 +53,11 @@ ylabel('频率')
 hold off
 
 subplot(1, 4, 4); % 正演相位
-semilogy(phs_average, f_obs)
+semilogy(phs_average, f_obs, 'LineWidth', 1)
 axis([0, 90, f_obs(1), f_obs(end)]);
 grid on
 hold on
-semilogy(phs_max, f_obs, 'r')
+semilogy(phs_max, f_obs, 'r', 'LineWidth', 1)
 errorbar(phs_obs, f_obs, phs_obs_err, 'horizontal', 'ko')
 legend('PPD期望正演响应', 'PPD峰值正演响应', '观测数据')
 title('PPD峰值与期望正演响应')
@@ -70,7 +70,7 @@ set(figure(2), 'Position', [50, 200, 320, 480])
 
 bar(model_n_hist(:, 2));
 grid on
-axis([4-model_n_hist(1), 30-model_n_hist(1), 0, 0.35])
+axis([3-model_n_hist(1), 30-model_n_hist(1), 0, 0.35])
 title('模型维数概率密度柱状图')
 xlabel('模型层数')
 ylabel('概率')

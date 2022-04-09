@@ -1,4 +1,4 @@
-function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, k_Cd, k_phs, k_err, m_test, z_test)
+function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, k_Cd, k_weight, k_err, m_test, z_test)
 % 单马尔科夫链程序——可变维
 % end_flag % 迭代结束时是否达标
 
@@ -10,7 +10,6 @@ function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh
 % N_end = 5E3; % 判定终止范围
 % k_punish = 0.9; % 罚参数
 % k_err = 1E4; % 容差系数
-% z_smooth_log = 0.2; % 模型平滑参数
 print_flag = 0; % 是否输出帧到./Frames/tmp
 plot_flag = 1; % 是否实时进行制图
 
@@ -29,9 +28,6 @@ end
 
 % 生成数据协方差矩阵
 len = length(d_obs_log);
-% Cd = (diag(linspace(1, 1, len*2), 0) + diag(linspace(k_Cd, k_Cd, len*2-1), 1) + diag(linspace(k_Cd, k_Cd, len*2-1), -1));
-% Cd(end/2, end/2+1) = 0;
-% Cd(end/2+1, end/2) = 0;
 Cd_part = generate_cov(len, log10(f_obs), k_Cd);
 Cd = [Cd_part, zeros(len); zeros(len), Cd_part];
 
@@ -48,9 +44,9 @@ model_grid = zeros(mesh_layers_n, mesh_rho_n); % 后验概率密度矩阵
 n = 10; % 初始层数
 n_range = [3, 30]; % 层数范围
 z_log = [mesh_func(linspace(2, 4, n-1), z_mesh_log); inf];
-m_log = [interp1(z_bostick, m_bostick, z_log(1:end-1)); 0];
-m_log(end) = m_log(end-1);
-m_log = mesh_func(m_log, rho_mesh_log);
+rho_log = [interp1(z_bostick, m_bostick, z_log(1:end-1)); 0];
+rho_log(end) = rho_log(end-1);
+rho_log = mesh_func(rho_log, rho_mesh_log);
 
 % 初始化参数
 end_flag = 0;
@@ -59,17 +55,17 @@ operation = 0;
 model_ind = 1;
 model_average_log_std = NaN;
 
-lh = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, m_log, z_log, k_phs, k_err); % 计算初始模型的似然函数
+lh = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, rho_log, z_log, k_weight, k_err); % 计算初始模型的似然函数
 
 % Cm = model_cov(n, z_log, z_smooth_log); % 模型协方差
-% prior_probability = exp(-norm((Cm^-(1/2))*m_log*k_smooth)^2/2) * ((2*pi)^(-n/2) * norm(Cm)^(-1/2)); % 先验（仅包含平滑）
+% prior_probability = exp(-norm((Cm^-(1/2))*rho_log*k_smooth)^2/2) * ((2*pi)^(-n/2) * norm(Cm)^(-1/2)); % 先验（仅包含平滑）
 prior_probability = 1;
 ppd = lh * prior_probability;
 
 model_cell = cell(N, 4);
 model_cell{1, 1} = z_log; % 分层向量
-model_cell{1, 2} = m_log; % 电阻率向量
-model_cell{1, 3} = lh; % 似然度
+model_cell{1, 2} = rho_log; % 电阻率向量
+model_cell{1, 3} = ppd; % PPD
 model_cell{1, 4} = cnt_rejections; % 拒绝次数
 model_cell{1, 5} = n; % 层数
 model_cell{1, 6} = operation; % 操作类型
@@ -79,18 +75,18 @@ refresh_ind = 0;
 t_func = tic;
 while model_ind < N
     flag = rand;
-    m_log_new = m_log;
+    rho_log_new = rho_log;
     z_log_new = z_log;
     n_new = n;
     
     if flag < 0.33 % 扰动电阻率 （TODO:考虑将操作概率转变为变量）
         n_rnd = randi(n_new);
-        m_log_new(n_rnd) = proposal_func(m_log_new(n_rnd), 'rho', rho_mesh_log);
+        rho_log_new(n_rnd) = proposal_func(rho_log_new(n_rnd), 'rho', rho_mesh_log);
         operation = 1;
-        if min(m_log_new) < rho_mesh_log(2) || max(m_log_new) > rho_mesh_log(end-1)
+        if min(rho_log_new) < rho_mesh_log(2) || max(rho_log_new) > rho_mesh_log(end-1)
             continue;
         end
-        lh_new = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, m_log_new, z_log_new, k_phs, k_err);
+        lh_new = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, rho_log_new, z_log_new, k_weight, k_err);
     elseif flag < 0.67 % 扰动分层位置
         n_rnd = randi(n_new-1);
         z_log_new(n_rnd) = proposal_func(z_log_new(n_rnd), 'z', z_mesh_log);
@@ -98,56 +94,56 @@ while model_ind < N
         if z_log_new(1) < z_mesh_log(2) || min(z_log_new(2:end)-z_log_new(1:end-1)) < z_mesh_log(2)
             continue;
         end
-        lh_new = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, m_log_new, z_log_new, k_phs, k_err);
+        lh_new = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, rho_log_new, z_log_new, k_weight, k_err);
     else % 生灭
         n_rnd = randi(n_new-2);
         if (rand < 0.5 || n_new >= n_range(2)) && n_new > n_range(1) % 灭
             z_log_new(n_rnd) = [];
-            m_log_new(n_rnd) = [];
+            rho_log_new(n_rnd) = [];
             operation = 3;
             n_new = n_new - 1;
-            lh_new = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, m_log_new, z_log_new, k_phs, k_err) * (2-k_punish);
+            lh_new = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, rho_log_new, z_log_new, k_weight, k_err) * (2-k_punish);
 %         else % 生
 %             z_log_new = [z_log_new(1:n_rnd); mesh_func(mean(z_log_new(n_rnd:n_rnd+1)), z_mesh_log); z_log_new(n_rnd+1:end)];
-%             m_log_new = [m_log_new(1:n_rnd); mesh_func((rand*(rho_mesh_log(end)-rho_mesh_log(1))+rho_mesh_log(1)), rho_mesh_log); m_log_new(n_rnd+1:end)];
+%             rho_log_new = [rho_log_new(1:n_rnd); mesh_func((rand*(rho_mesh_log(end)-rho_mesh_log(1))+rho_mesh_log(1)), rho_mesh_log); rho_log_new(n_rnd+1:end)];
 %             operation = 4;
 %             n_new = n_new + 1;
-%             lh_new = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, m_log_new, z_log_new, k_phs, k_err) * k_punish;
+%             lh_new = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, rho_log_new, z_log_new, k_phs, k_err) * k_punish;
 %         end
         else % 生，使第一层和最后一层可以生
             if randi(n_new) == n_new % 使最后一层可以生
                 z_log_new = [z_log_new(1:end-1); mesh_func(mean([z_log_new(end-1), z_mesh_log(end)]), z_mesh_log); z_log_new(end)];
 %                 z_log_new = [z_log_new(1:end-1); mesh_func(rand * (z_mesh_log(end)-z_log_new(end-1)), z_mesh_log); z_log_new(end)];
-                m_log_new = [m_log_new(1:end-1); mesh_func((rand * (rho_mesh_log(end)-rho_mesh_log(1))+rho_mesh_log(1)), rho_mesh_log); m_log_new(end)];
+                rho_log_new = [rho_log_new(1:end-1); mesh_func((rand * (rho_mesh_log(end)-rho_mesh_log(1))+rho_mesh_log(1)), rho_mesh_log); rho_log_new(end)];
             elseif n_rnd > 1
                 z_log_new = [z_log_new(1:n_rnd-1); mesh_func(mean(z_log_new(n_rnd-1:n_rnd)), z_mesh_log); z_log_new(n_rnd:end)];
 %                 z_log_new = [z_log_new(1:n_rnd-1); mesh_func(rand * (z_log_new(n_rnd)-z_log_new(n_rnd-1)), z_mesh_log); z_log_new(n_rnd:end)];
-                m_log_new = [m_log_new(1:n_rnd-1); mesh_func((rand * (rho_mesh_log(end)-rho_mesh_log(1))+rho_mesh_log(1)), rho_mesh_log); m_log_new(n_rnd:end)];
+                rho_log_new = [rho_log_new(1:n_rnd-1); mesh_func((rand * (rho_mesh_log(end)-rho_mesh_log(1))+rho_mesh_log(1)), rho_mesh_log); rho_log_new(n_rnd:end)];
             else % 使第一层可以生
                 z_log_new = [mesh_func(mean([0, z_log_new(n_rnd)]), z_mesh_log); z_log_new(n_rnd:end)];
 %                 z_log_new = [mesh_func(rand * z_mesh_log(n_rnd), z_mesh_log); z_log_new(n_rnd:end)];
-                m_log_new = [mesh_func((rand * (rho_mesh_log(end)-rho_mesh_log(1))+rho_mesh_log(1)), rho_mesh_log); m_log_new(n_rnd:end)];
+                rho_log_new = [mesh_func((rand * (rho_mesh_log(end)-rho_mesh_log(1))+rho_mesh_log(1)), rho_mesh_log); rho_log_new(n_rnd:end)];
             end
             operation = 4;
             n_new = n_new + 1;
-            lh_new = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, m_log_new, z_log_new, k_phs, k_err) * k_punish;
+            lh_new = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, rho_log_new, z_log_new, k_weight, k_err) * k_punish;
         end
     end
     
 %     Cm_new = model_cov(n_new, z_log_new, z_smooth_log);
-%     prior_probability_new = exp(-norm((Cm_new^(-1/2))*m_log_new)/2);
+%     prior_probability_new = exp(-norm((Cm_new^(-1/2))*rho_log_new)/2);
     prior_probability_new = 1;
     ppd_new = lh_new * prior_probability_new;
     
-    if rand < ppd_new/ppd && length(z_log_new) == length(unique(z_log_new)) && isequal(z_log_new, sort(z_log_new)) && max(m_log_new) < rho_mesh(end)
+    if rand < ppd_new/ppd && length(z_log_new) == length(unique(z_log_new)) && isequal(z_log_new, sort(z_log_new)) && max(rho_log_new) < rho_mesh(end)
         model_ind = model_ind + 1;
         model_cell{model_ind, 1} = z_log_new;
-        model_cell{model_ind, 2} = m_log_new;
+        model_cell{model_ind, 2} = rho_log_new;
         model_cell{model_ind, 3} = ppd_new;
         model_cell{model_ind, 4} = cnt_rejections;
         model_cell{model_ind, 5} = n_new;
         model_cell{model_ind, 6} = operation;
-        m_log = m_log_new;
+        rho_log = rho_log_new;
         z_log = z_log_new;
 %         lh = lh_new;
         ppd = ppd_new;
@@ -157,7 +153,7 @@ while model_ind < N
         for mesh_n_ind = 1:mesh_layers_n % 计算后验概率
             zk = z_log - z_mesh_log(mesh_n_ind);
             z_ind = find(zk >= 0, 1);
-            m_ind = find(rho_mesh_log == m_log(z_ind));
+            m_ind = find(rho_mesh_log == rho_log(z_ind));
             model_grid(mesh_n_ind, m_ind) = model_grid(mesh_n_ind, m_ind) + ppd;
         end
         
@@ -196,16 +192,16 @@ while model_ind < N
                 annotation('textbox',[.9 0 .1 .2], 'String',num2str(model_average_log_std),'EdgeColor','none');
                 
                 subplot(1, 4, 1); % 模型
-                loglog(model_average, z_mesh)
+                loglog(model_average, z_mesh, 'LineWidth', 1)
                 set(gca, 'YDir', 'reverse');
                 axis([rho_mesh(1), rho_mesh(end), z_mesh(1), z_mesh(end)]);
                 grid on
                 hold on
-                loglog(model_max, z_mesh, 'r')
+                loglog(model_max, z_mesh, 'r', 'LineWidth', 1)
                 if test_flag == 1
-                    plot([m_test(1), m_test(1)], [z_mesh(1), z_test(1)], 'k--')
-                    stairs(m_test, z_test, 'k--');
-                    plot([m_test(end), m_test(end)], [z_test(end-1), z_mesh(end)], 'k--');
+                    plot([m_test(1), m_test(1)], [z_mesh(1), z_test(1)], 'k--', 'LineWidth', 1)
+                    stairs(m_test, z_test, 'k--', 'LineWidth', 1);
+                    plot([m_test(end), m_test(end)], [z_test(end-1), z_mesh(end)], 'k--', 'LineWidth', 1);
                     
                     legend('PPD期望', 'PPD峰值', '测试模型')
                 else
@@ -228,11 +224,11 @@ while model_ind < N
                 xlabel('电阻率')
                 
                 subplot(1, 4, 3); % 正演视电阻率
-                semilogy(model_average_response_rho_log, f_obs)
+                semilogy(model_average_response_rho_log, f_obs, 'LineWidth', 1)
                 axis([log10(rho_mesh(1)), log10(rho_mesh(end)), f_obs(1), f_obs(end)]);
                 grid on
                 hold on
-                semilogy(model_max_response_rho_log, f_obs, 'r')
+                semilogy(model_max_response_rho_log, f_obs, 'r', 'LineWidth', 1)
                 errorbar(d_obs_log, f_obs, d_obs_err_log, 'horizontal', 'ko')
                 xticks(linspace(log10(rho_mesh(1)), log10(rho_mesh(end)), log10(rho_mesh(end))+1))
                 xticklabels(['{10^0}'; '{10^1}'; '{10^2}'; '{10^3}'; '{10^4}'; '{10^5}'; '{10^6}'])
@@ -243,11 +239,11 @@ while model_ind < N
                 hold off
                 
                 subplot(1, 4, 4); % 正演相位
-                semilogy(model_average_response_phs, f_obs)
+                semilogy(model_average_response_phs, f_obs, 'LineWidth', 1)
                 axis([0, 90, f_obs(1), f_obs(end)]);
                 grid on
                 hold on
-                semilogy(model_max_response_phs, f_obs, 'r')
+                semilogy(model_max_response_phs, f_obs, 'r', 'LineWidth', 1)
                 errorbar(phs_obs, f_obs, phs_obs_err, 'horizontal', 'ko')
                 legend('PPD期望正演响应', 'PPD峰值正演响应', '观测数据')
                 title('PPD峰值与期望正演响应')
