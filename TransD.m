@@ -1,4 +1,4 @@
-function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, k_Cd, k_phs, k_err, m_test, z_test)
+function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, k_Cd, k_phs, k_err, z_smooth_log, m_test, z_test)
 % 单马尔科夫链程序——可变维
 % end_flag % 迭代结束时是否达标
 
@@ -9,11 +9,12 @@ function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh
 % std_target = 0.1; % 期望标准差上限
 % N_end = 5E3; % 判定终止范围
 % k_punish = 0.9; % 罚参数
-% k_err = 1E4;
-print_flag = 1; % 是否输出帧到./Frames/tmp
-plot_flag = 1;
+% k_err = 1E4; % 容差系数
+% z_smooth_log = 0.2; % 模型平滑参数
+print_flag = 0; % 是否输出帧到./Frames/tmp
+plot_flag = 0; % 是否实时进行制图
 
-if nargin < 16
+if nargin < 17
     test_flag = 0;
 else
     test_flag = 1;
@@ -26,23 +27,19 @@ if plot_flag == 1
     [x, y] = meshgrid(rho_mesh, z_mesh);
 end
 
-% 生成不确定性矩阵（TODO:Cm Model Covariance）
+% 生成数据协方差矩阵
 len = length(d_obs_log);
 Cd = (diag(linspace(1, 1, len*2), 0) + diag(linspace(k_Cd, k_Cd, len*2-1), 1) + diag(linspace(k_Cd, k_Cd, len*2-1), -1));
 Cd(end/2, end/2+1) = 0;
 Cd(end/2+1, end/2) = 0;
 
 % 处理网格
-% z_mesh = logspace(0, 5, 200)';
-% rho_mesh = logspace(0, 5, 200)';
 z_mesh_log = log10(z_mesh);
 rho_mesh_log = log10(rho_mesh);
 
-rho_model_max = max(rho_mesh_log);
-
 mesh_layers_n = length(z_mesh_log); % 网格层数
 mesh_rho_n = length(rho_mesh_log); % 电阻网格数
-model_grid = zeros(mesh_layers_n, mesh_rho_n); % 后验概率密度
+model_grid = zeros(mesh_layers_n, mesh_rho_n); % 后验概率密度矩阵
 
 % BOSITICK反演生成初始模型
 [m_bostick, z_bostick] = bostick_func(d_obs_log, phs_obs, f_obs); % bostick反演
@@ -60,8 +57,13 @@ operation = 0;
 model_ind = 1;
 model_average_log_std = NaN;
 
+lh = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, m_log, z_log, k_phs, k_err); % 计算初始模型的似然函数
 
-lh = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, m_log, z_log, k_phs, k_err);
+% 先验测试
+Cm = model_cov(n, z_log, z_smooth_log);
+prior_probability = exp(-norm((Cm^(-1/2))*m_log)/2);
+ppd = lh * prior_probability;
+
 model_cell = cell(N, 4);
 model_cell{1, 1} = z_log; % 分层向量
 model_cell{1, 2} = m_log; % 电阻率向量
@@ -129,17 +131,23 @@ while model_ind < N
             lh_new = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, m_log_new, z_log_new, k_phs, k_err) * k_punish;
         end
     end
-    if rand < lh_new/lh && length(z_log_new) == length(unique(z_log_new)) && isequal(z_log_new, sort(z_log_new)) && max(m_log_new) < rho_model_max
+    
+    Cm_new = model_cov(n_new, z_log_new, z_smooth_log);
+    prior_probability_new = exp(-norm((Cm_new^(-1/2))*m_log_new)/2);
+    ppd_new = lh_new * prior_probability_new;
+    
+    if rand < ppd_new/ppd && length(z_log_new) == length(unique(z_log_new)) && isequal(z_log_new, sort(z_log_new)) && max(m_log_new) < rho_mesh(end)
         model_ind = model_ind + 1;
         model_cell{model_ind, 1} = z_log_new;
         model_cell{model_ind, 2} = m_log_new;
-        model_cell{model_ind, 3} = lh_new;
+        model_cell{model_ind, 3} = ppd_new;
         model_cell{model_ind, 4} = cnt_rejections;
         model_cell{model_ind, 5} = n_new;
         model_cell{model_ind, 6} = operation;
         m_log = m_log_new;
         z_log = z_log_new;
-        lh = lh_new;
+%         lh = lh_new;
+        ppd = ppd_new;
         n = n_new;
         cnt_rejections = 0;
         
@@ -147,7 +155,7 @@ while model_ind < N
             zk = z_log - z_mesh_log(mesh_n_ind);
             z_ind = find(zk >= 0, 1);
             m_ind = find(rho_mesh_log == m_log(z_ind));
-            model_grid(mesh_n_ind, m_ind) = model_grid(mesh_n_ind, m_ind) + lh;
+            model_grid(mesh_n_ind, m_ind) = model_grid(mesh_n_ind, m_ind) + ppd;
         end
         
         if mod(model_ind, N_refresh) == 0
