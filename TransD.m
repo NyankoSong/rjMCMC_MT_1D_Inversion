@@ -1,4 +1,4 @@
-function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, k_Cd, k_weight, k_err, m_test, z_test)
+function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, f_Cd, k_weight, k_err, k_smooth, z_smooth_log, m_test, z_test)
 % 单马尔科夫链程序——可变维
 % end_flag % 迭代结束时是否达标
 
@@ -13,7 +13,7 @@ function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh
 print_flag = 0; % 是否输出帧到./Frames/tmp
 plot_flag = 1; % 是否实时进行制图
 
-if nargin < 17
+if nargin < 19
     test_flag = 0;
 else
     test_flag = 1;
@@ -26,10 +26,12 @@ if plot_flag == 1
     [x, y] = meshgrid(rho_mesh, z_mesh);
 end
 
-% 生成数据协方差矩阵
-len = length(d_obs_log);
-Cd_part = generate_cov(len, log10(f_obs), k_Cd);
-Cd = [Cd_part, zeros(len); zeros(len), Cd_part];
+% 生成数据协方差矩阵 TODO:将rho和phs数据对应的f分离
+len_rho = length(d_obs_log);
+len_phs = length(phs_obs);
+Cd_rho_part = generate_cov(len_rho, log10(f_obs), f_Cd);
+Cd_phs_part = generate_cov(len_phs, log10(f_obs), f_Cd);
+Cd = [Cd_rho_part, zeros(len_rho, len_phs); zeros(len_phs, len_rho), Cd_phs_part];
 
 % 处理网格
 z_mesh_log = log10(z_mesh);
@@ -57,9 +59,9 @@ model_average_log_std = NaN;
 
 lh = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, rho_log, z_log, k_weight, k_err); % 计算初始模型的似然函数
 
-% Cm = model_cov(n, z_log, z_smooth_log); % 模型协方差
-% prior_probability = exp(-norm((Cm^-(1/2))*rho_log*k_smooth)^2/2) * ((2*pi)^(-n/2) * norm(Cm)^(-1/2)); % 先验（仅包含平滑）
-prior_probability = 1;
+Cm = generate_cov(n, z_log, z_smooth_log); % 模型协方差
+prior_probability = exp(-norm((Cm^-(1/2))*((rho_log-mean(rho_log))/std(rho_log)) .* k_smooth)^2/2); % 先验（仅包含平滑）
+% prior_probability = 1;
 ppd = lh * prior_probability;
 
 model_cell = cell(N, 4);
@@ -130,9 +132,9 @@ while model_ind < N
         end
     end
     
-%     Cm_new = model_cov(n_new, z_log_new, z_smooth_log);
-%     prior_probability_new = exp(-norm((Cm_new^(-1/2))*rho_log_new)/2);
-    prior_probability_new = 1;
+    Cm_new = generate_cov(n_new, z_log_new, z_smooth_log);
+    prior_probability_new = exp(-norm((Cm_new^(-1/2))*((rho_log_new-mean(rho_log_new))/std(rho_log_new)) .* k_smooth)^2/2);
+%     prior_probability_new = 1;
     ppd_new = lh_new * prior_probability_new;
     
     if rand < ppd_new/ppd && length(z_log_new) == length(unique(z_log_new)) && isequal(z_log_new, sort(z_log_new)) && max(rho_log_new) < rho_mesh(end)

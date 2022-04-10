@@ -1,5 +1,5 @@
 % 可选：初始化随机数生成器
-rng(0);
+% rng(0);
 
 % 生成测试数据
 m_test = [100, 1000, 100, 10000, 2000]';
@@ -16,8 +16,8 @@ f_obs = logspace(-3, 5, 20)';
 [d_obs_log_clear, phs_obs_clear] = forward_func(log10(m_test), log10(z_test), f_obs);
 
 % 生成误差
-d_obs_err_log = 0.1 * d_obs_log_clear;
-phs_obs_err = ones(length(f_obs), 1) * 5;
+d_obs_err_log = 0.3 * d_obs_log_clear;
+phs_obs_err = ones(length(f_obs), 1) * 20;
 
 % 生成噪声
 % 均匀分布
