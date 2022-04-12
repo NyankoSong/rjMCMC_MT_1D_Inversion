@@ -137,7 +137,7 @@ while model_ind < N
     end
     
     Cm_new = generate_cov(n_new, z_log_new, z_smooth_log);
-    prior_probability_new = exp(-norm((Cm_new^(-1/2))*((rho_log_new-mean(rho_log_new))/std(rho_log_new)) .* k_smooth)^2/2);
+    prior_probability_new = exp(-norm((Cm_new^(-1/2))*((rho_log_new-mean(rho_log_new))/std(rho_log_new)))^2/2);
 %     prior_probability_new = 1;
     ppd_new = lh_new * prior_probability_new;
     
