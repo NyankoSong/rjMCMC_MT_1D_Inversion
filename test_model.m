@@ -16,16 +16,16 @@ f_obs = logspace(-3, 5, 20)';
 [d_obs_log_clear, phs_obs_clear] = forward_func(log10(m_test), log10(z_test), f_obs);
 
 % 生成误差
-d_obs_err_log = 0.3 * d_obs_log_clear;
-phs_obs_err = ones(length(f_obs), 1) * 20;
+d_obs_err_log = 0.1 * d_obs_log_clear;
+phs_obs_err = ones(length(f_obs), 1) * 5;
 
 % 生成噪声
 % 均匀分布
-d_obs_log = d_obs_log_clear + (2.*rand(length(f_obs), 1)-1).*d_obs_err_log;
-phs_obs = phs_obs_clear + (2.*rand(length(f_obs), 1)-1).*phs_obs_err;
+% d_obs_log = d_obs_log_clear + (2.*rand(length(f_obs), 1)-1).*d_obs_err_log;
+% phs_obs = phs_obs_clear + (2.*rand(length(f_obs), 1)-1).*phs_obs_err;
 % 正态分布
 % d_obs_log = d_obs_log_clear + randn(length(f_obs), 1).*(d_obs_err_log/3);
 % phs_obs = phs_obs_clear + randn(length(f_obs), 1).*(phs_obs_err/3);
 % 无
-% d_obs_log = d_obs_log_clear;
-% phs_obs = phs_obs_clear;
+d_obs_log = d_obs_log_clear;
+phs_obs = phs_obs_clear;

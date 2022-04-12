@@ -1,4 +1,4 @@
-function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, f_Cd, k_weight, k_err, k_smooth, z_smooth_log, m_test, z_test)
+function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, f_Cd, k_weight, k_err, z_smooth_log, m_test, z_test)
 % 单马尔科夫链程序——可变维
 % end_flag % 迭代结束时是否达标
 
@@ -9,11 +9,15 @@ function [model_cell, model_grid, end_flag, model_ind] = TransD(rho_mesh, z_mesh
 % std_target = 0.1; % 期望标准差上限
 % N_end = 5E3; % 判定终止范围
 % k_punish = 0.9; % 罚参数
+% f_Cd = 0.3; % 强相关频率差（暂定为1σ）
+% k_weight = 1; % 权重系数（<1时为视电阻率高权重）
 % k_err = 1E4; % 容差系数
-print_flag = 0; % 是否输出帧到./Frames/tmp
-plot_flag = 1; % 是否实时进行制图
+% z_smooth_log = 0.2; % 强相关层间距（暂定为1σ）
 
-if nargin < 19
+print_flag = 0; % 是否输出帧到./Frames/tmp
+plot_flag = 0; % 是否实时进行制图
+
+if nargin < 18
     test_flag = 0;
 else
     test_flag = 1;

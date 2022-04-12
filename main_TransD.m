@@ -1,7 +1,10 @@
 %% 初始化参数
 % 生成网格
-z_mesh = logspace(0, 5, 200)';
-rho_mesh = logspace(0, 6, 200)';
+z_n = 200;
+rho_n = 200;
+
+z_mesh = logspace(0, 5, z_n)';
+rho_mesh = logspace(0, 6, rho_n)';
 z_mesh_log = log10(z_mesh);
 rho_mesh_log = log10(rho_mesh);
 
@@ -15,7 +18,6 @@ k_punish = 1; % 罚参数（<1时为倾向更少层数）
 f_Cd = 0.3; % 强相关频率差（暂定为1σ）
 k_weight = 1; % 权重系数（<1时为视电阻率高权重）
 k_err = 10; % 容差系数（越高则对误差容忍度越低）
-k_smooth = 1; % 平滑系数（越高则对平滑度要求越高）
 z_smooth_log = 0.2; % 强相关层间距（暂定为1σ）
 
 % 初始化参数
@@ -31,7 +33,7 @@ for i = 1:n_test
     
     t_main = tic;
     while end_flag == 1
-        [model_cell, model_grid, end_flag, N_iter] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, f_Cd, k_weight, k_err, k_smooth, z_smooth_log, m_test, z_test);
+        [model_cell, model_grid, end_flag, N_iter] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, f_Cd, k_weight, k_err, z_smooth_log, m_test, z_test);
         N_iter_sum = N_iter_sum + N_iter;
         
         % 若只进行一次迭代则取消下行注释
@@ -62,12 +64,41 @@ end
 model_n_hist(:, 2) = model_n_hist(:, 2) ./ sum(model_n_hist(:, 2));
 
 % 对峰值和期望值进行正演
-[rho_average_log, phs_average] = forward_func(model_average_log, z_mesh_log, f_obs);
-[rho_max_log, phs_max] = forward_func(model_max_log, z_mesh_log, f_obs);
+[rhoa_average_log, phs_average] = forward_func(model_average_log, z_mesh_log, f_obs);
+[rhoa_max_log, phs_max] = forward_func(model_max_log, z_mesh_log, f_obs);
 
 % 还原视电阻率
-rho_average = 10.^rho_average_log;
-rho_max = 10.^rho_max_log;
+rhoa_average = 10.^rhoa_average_log;
+rhoa_max = 10.^rhoa_max_log;
+
+% 计算模型中位数
+model_grid_pdf = cumsum((model_grid ./ repmat(sum(model_grid, 2), 1, rho_n)), 2);
+model_median_log = zeros(z_n, 1);
+for i = 1:z_n
+    median_pos = find(model_grid_pdf(i, :) > 0.5, 1);
+    model_median_log(i) = interp1(model_grid_pdf(i, median_pos-1:median_pos), rho_mesh_log(median_pos-1:median_pos)', 0.5);
+end
+model_median = 10.^model_median_log;
+
+% 计算置信区间上界和下界
+model_conf = [0.99, 0.95, 0.68];
+model_conf_edge_log = zeros(z_n, length(model_conf)*2);
+for i = 1:z_n
+    for j = 1:length(model_conf)
+        conf_edge_pos_1 = find(model_grid_pdf(i, :) > (1-model_conf(j))/2, 1);
+        conf_edge_pos_2 = find(model_grid_pdf(i, :) > (1-model_conf(j))/2 + model_conf(j), 1);
+        if conf_edge_pos_1 > 1
+            model_conf_edge_log(i, j*2-1) = interp1(model_grid_pdf(i, conf_edge_pos_1-1:conf_edge_pos_1), rho_mesh_log(conf_edge_pos_1-1:conf_edge_pos_1)', (1-model_conf(j))/2);
+        else
+            model_conf_edge_log(i, j*2-1) = rho_mesh_log(1);
+        end
+        model_conf_edge_log(i, j*2) = interp1(model_grid_pdf(i, conf_edge_pos_2-1:conf_edge_pos_2), rho_mesh_log(conf_edge_pos_2-1:conf_edge_pos_2)', (1-model_conf(j))/2 + model_conf(j));
+    end
+end
+model_conf_edge = 10.^model_conf_edge_log;
+
+% 计算模型标准差（用高斯分布描述置信区间时使用，然而实际上并不服从高斯分布......）
+sigma = sum((model_grid ./ repmat(sum(model_grid, 2), 1, rho_n)) .* (repmat(rho_mesh_log', z_n, 1) - repmat(model_average_log, 1, rho_n)).^2, 2) .^ (1/2);
 
 %% 制图
 plot_mesh
