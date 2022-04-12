@@ -64,7 +64,7 @@ model_average_log_std = NaN;
 lh = likelihood_func(Cd, d_obs_log, phs_obs, f_obs, rho_log, z_log, k_weight, k_err); % 计算初始模型的似然函数
 
 Cm = generate_cov(n, z_log, z_smooth_log); % 模型协方差
-prior_probability = exp(-norm((Cm^-(1/2))*((rho_log-mean(rho_log))/std(rho_log)) .* k_smooth)^2/2); % 先验（仅包含平滑）
+prior_probability = exp(-norm((Cm^-(1/2))*((rho_log-mean(rho_log))/std(rho_log)))^2/2); % 先验（仅包含平滑）
 % prior_probability = 1;
 ppd = lh * prior_probability;
 
