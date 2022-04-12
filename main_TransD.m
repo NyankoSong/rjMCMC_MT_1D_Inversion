@@ -13,12 +13,15 @@ N = 1E6; % 最大迭代次数
 N_refresh = 1E3; % 刷新间隔次数
 rms_target = 1; % 目标RMS误差
 std_target = 0.05; % 期望标准差上限
-N_end = 2E4; % 判定终止范围
-k_punish = 1; % 罚参数（<1时为倾向更少层数）
+N_end = 1E4; % 判定终止范围
+k_punish = 0.9; % 罚参数（<1时为倾向更少层数）
 f_Cd = 0.3; % 强相关频率差（暂定为1σ）
 k_weight = 1; % 权重系数（<1时为视电阻率高权重）
-k_err = 10; % 容差系数（越高则对误差容忍度越低）
-z_smooth_log = 0.2; % 强相关层间距（暂定为1σ）
+k_err = 10; % 基准容差系数（越高则对误差容忍度越低）
+k_err_rhoa = 0.2; % 视电阻率误差3σ
+k_err_phs = 10; % 相位误差3σ
+k_smooth = 0.5; % 平滑系数（越高则模型越倾向于变得平滑）
+z_smooth_log = 0.1; % 强相关层间距（暂定为1σ）
 
 % 初始化参数
 N_iter_sum = 0;
@@ -33,7 +36,7 @@ for i = 1:n_test
     
     t_main = tic;
     while end_flag == 1
-        [model_cell, model_grid, end_flag, N_iter] = TransD(rho_mesh, z_mesh, f_obs, d_obs_log, d_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, f_Cd, k_weight, k_err, z_smooth_log, m_test, z_test);
+        [model_cell, model_grid, end_flag, N_iter] = TransD(rho_mesh, z_mesh, f_rhoa, f_phs, rhoa_obs_log, rhoa_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, f_Cd, k_weight, k_err, k_err_rhoa, k_err_phs, k_smooth, z_smooth_log, m_test, z_test);
         N_iter_sum = N_iter_sum + N_iter;
         
         % 若只进行一次迭代则取消下行注释
@@ -64,8 +67,10 @@ end
 model_n_hist(:, 2) = model_n_hist(:, 2) ./ sum(model_n_hist(:, 2));
 
 % 对峰值和期望值进行正演
-[rhoa_average_log, phs_average] = forward_func(model_average_log, z_mesh_log, f_obs);
-[rhoa_max_log, phs_max] = forward_func(model_max_log, z_mesh_log, f_obs);
+[rhoa_average_log, ~] = forward_func(model_average_log, z_mesh_log, f_rhoa);
+[~, phs_average] = forward_func(model_average_log, z_mesh_log, f_phs);
+[rhoa_max_log, ~] = forward_func(model_max_log, z_mesh_log, f_rhoa);
+[~, phs_max] = forward_func(model_max_log, z_mesh_log, f_phs);
 
 % 还原视电阻率
 rhoa_average = 10.^rhoa_average_log;

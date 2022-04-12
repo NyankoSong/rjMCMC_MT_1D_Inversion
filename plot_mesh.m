@@ -1,10 +1,10 @@
 
-
 figure(1)
 test_flag = 1;
 set(figure(1), 'Position', [50, 200, 1600, 480])
 
 subplot(1, 5, 1); % 伪彩色图
+[x, y] = meshgrid(rho_mesh, z_mesh);
 mesh(x, y, model_grid, 'FaceColor', 'flat')
 set(gca, 'XScale', 'log');
 set(gca, 'YScale', 'log');
@@ -13,7 +13,6 @@ view(0,270)
 xticks(logspace(log10(rho_mesh(1)), log10(rho_mesh(end)), log10(rho_mesh(end))+1))
 title('PPD伪彩色图')
 xlabel('电阻率')
-[x, y] = meshgrid(rho_mesh, z_mesh);
 
 subplot(1, 5, 2); % 模型
 loglog(model_average, z_mesh, 'LineWidth', 1)
@@ -62,12 +61,12 @@ set(gca, 'YScale', 'log');
 set(gca, 'YDir', 'reverse');
 
 subplot(1, 5, 4); % 正演视电阻率
-semilogy(rhoa_average_log, f_obs, 'LineWidth', 1)
-axis([log10(rho_mesh(1)), log10(rho_mesh(end)), f_obs(1), f_obs(end)]);
+semilogy(rhoa_average_log, f_rhoa, 'LineWidth', 1)
+axis([log10(rho_mesh(1)), log10(rho_mesh(end)), f_rhoa(1), f_rhoa(end)]);
 grid on
 hold on
-semilogy(rhoa_max_log, f_obs, 'r', 'LineWidth', 1)
-errorbar(d_obs_log, f_obs, d_obs_err_log, 'horizontal', 'ko')
+semilogy(rhoa_max_log, f_rhoa, 'r', 'LineWidth', 1)
+errorbar(rhoa_obs_log, f_rhoa, rhoa_obs_err_log, 'horizontal', 'ko')
 xticks(linspace(log10(rho_mesh(1)), log10(rho_mesh(end)), log10(rho_mesh(end))+1))
 xticklabels(['{10^0}'; '{10^1}'; '{10^2}'; '{10^3}'; '{10^4}'; '{10^5}'; '{10^6}'])
 legend('PPD期望正演响应', 'PPD峰值正演响应', '观测数据')
@@ -77,12 +76,12 @@ ylabel('频率')
 hold off
 
 subplot(1, 5, 5); % 正演相位
-semilogy(phs_average, f_obs, 'LineWidth', 1)
-axis([0, 90, f_obs(1), f_obs(end)]);
+semilogy(phs_average, f_phs, 'LineWidth', 1)
+axis([0, 90, f_phs(1), f_phs(end)]);
 grid on
 hold on
-semilogy(phs_max, f_obs, 'r', 'LineWidth', 1)
-errorbar(phs_obs, f_obs, phs_obs_err, 'horizontal', 'ko')
+semilogy(phs_max, f_phs, 'r', 'LineWidth', 1)
+errorbar(phs_obs, f_phs, phs_obs_err, 'horizontal', 'ko')
 legend('PPD期望正演响应', 'PPD峰值正演响应', '观测数据')
 title('PPD峰值与期望正演响应')
 xlabel('相位')
@@ -134,7 +133,7 @@ hold off
 % axis([log10(rho_mesh(1)), log10(rho_mesh(end)), f_obs(1), f_obs(end)]);
 % hold on
 % grid on
-% errorbar(d_obs_log, f_obs, d_obs_err_log, 'horizontal', 'ko')
+% errorbar(rhoa_obs_log, f_obs, rhoa_obs_err_log, 'horizontal', 'ko')
 % xticks(linspace(log10(rho_mesh(1)), log10(rho_mesh(end)), log10(rho_mesh(end))+1))
 % xticklabels(['{10^0}'; '{10^1}'; '{10^2}'; '{10^3}'; '{10^4}'; '{10^5}'; '{10^6}'])
 % legend('光滑反演正演响应', '观测数据')
