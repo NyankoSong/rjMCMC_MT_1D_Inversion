@@ -1,7 +1,7 @@
 %% 初始化参数
 % 生成网格
-z_n = 200;
-rho_n = 200;
+z_n = 50;
+rho_n = 50;
 
 z_mesh = logspace(0, 5, z_n)';
 rho_mesh = logspace(0, 6, rho_n)';
@@ -13,14 +13,11 @@ N = 1E6; % 最大迭代次数
 N_refresh = 1E3; % 刷新间隔次数
 rms_target = 1; % 目标RMS误差
 std_target = 0.05; % 期望标准差上限
-N_end = 1E4; % 判定终止范围
-k_punish = 0.9; % 罚参数（<1时为倾向更少层数）
-f_Cd = 0.3; % 强相关频率差（暂定为1σ）
+N_end = 5E3; % 判定终止范围
+k_punish = 1; % 罚参数（<1时为倾向更少层数）
 k_weight = 1; % 权重系数（<1时为视电阻率高权重）
-k_err = 10; % 基准容差系数（越高则对误差容忍度越低）
-k_err_rhoa = 0.2; % 视电阻率误差3σ
-k_err_phs = 10; % 相位误差3σ
-k_smooth = 0.5; % 平滑系数（越高则模型越倾向于变得平滑）
+scale_factor = 1; % 尺度因子（越高则对误差容忍度越高）
+lambda = 0.1; % 先验权系数（越高则模型越倾向于变得平滑）
 z_smooth_log = 0.1; % 强相关层间距（暂定为1σ）
 
 % 初始化参数
@@ -36,7 +33,7 @@ for i = 1:n_test
     
     t_main = tic;
     while end_flag == 1
-        [model_cell, model_grid, end_flag, N_iter] = TransD(rho_mesh, z_mesh, f_rhoa, f_phs, rhoa_obs_log, rhoa_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, f_Cd, k_weight, k_err, k_err_rhoa, k_err_phs, k_smooth, z_smooth_log, m_test, z_test);
+        [model_cell, model_grid, end_flag, N_iter] = TransD(rho_mesh, z_mesh, f_rhoa, f_phs, rhoa_obs_log, rhoa_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, std_target, N_end, k_punish, k_weight, scale_factor, lambda, z_smooth_log, m_test, z_test);
         N_iter_sum = N_iter_sum + N_iter;
         
         % 若只进行一次迭代则取消下行注释

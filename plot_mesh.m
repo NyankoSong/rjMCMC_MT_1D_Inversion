@@ -15,13 +15,15 @@ title('PPD伪彩色图')
 xlabel('电阻率')
 
 subplot(1, 5, 2); % 模型
-loglog(model_average, z_mesh, 'LineWidth', 1)
+stairs(model_average, z_mesh, 'LineWidth', 1)
+set(gca, 'XScale', 'log');
+set(gca, 'YScale', 'log');
 set(gca, 'YDir', 'reverse');
 axis([rho_mesh(1), rho_mesh(end), z_mesh(1), z_mesh(end)]);
 grid on
 hold on
-loglog(model_max, z_mesh, 'r', 'LineWidth', 1)
-loglog(model_median, z_mesh, 'g', 'LineWidth', 1)
+stairs(model_max, z_mesh, 'r', 'LineWidth', 1)
+stairs(model_median, z_mesh, 'g', 'LineWidth', 1)
 if test_flag == 1
     plot([m_test(1), m_test(1)], [z_mesh(1), z_test(1)], 'k--', 'LineWidth', 1)
     stairs(m_test, z_test, 'k--', 'LineWidth', 1);
@@ -51,9 +53,18 @@ for i = 1:3
 hold on
 end
 grid on
-loglog(model_median, z_mesh, 'w', 'LineWidth', 1)
+if test_flag == 1
+    plot([m_test(1), m_test(1)], [z_mesh(1), z_test(1)], 'k--', 'LineWidth', 1)
+    stairs(m_test, z_test, 'k--', 'LineWidth', 1);
+    plot([m_test(end), m_test(end)], [z_test(end-1), z_mesh(end)], 'k--', 'LineWidth', 1);
+    loglog(model_median, z_mesh, 'w', 'LineWidth', 1)
+    
+    legend('99%置信区间', '95%置信区间', '68%置信区间', '测试模型', 'PPD中位数')
+else
+    loglog(model_median, z_mesh, 'w', 'LineWidth', 1)
+    legend('99%置信区间', '95%置信区间', '68%置信区间', 'PPD中位数')
+end
 title('置信区间')
-legend('99%置信区间', '95%置信区间', '68%置信区间', 'PPD中位数')
 axis([rho_mesh(1), rho_mesh(end), z_mesh(1), z_mesh(end)]);
 xticks(logspace(log10(rho_mesh(1)), log10(rho_mesh(end)), log10(rho_mesh(end))+1))
 set(gca, 'XScale', 'log');
