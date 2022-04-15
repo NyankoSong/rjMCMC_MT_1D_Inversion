@@ -2,12 +2,12 @@
 % rng(0);
 
 % 生成测试数据
-m_test = [100, 1000, 100, 10000, 2000]';
-z_test = [100, 2000, 4000, 8000, inf]';
+% m_test = [100, 1000, 100, 10000, 2000]';
+% z_test = [100, 2000, 4000, 8000, inf]';
 % m_test = [100, (10.^(2.5-1.5*square(2*pi.*linspace(0, 4, 48)))), 100]';
 % z_test = [logspace(1, 4, 49), inf]';
-% m_test = (10.^(2.5-1.5*sin(linspace(0, 4*pi, 50))))';
-% z_test = [logspace(1, 4, 49), inf]';
+m_test = (10.^(2.5-1.5*sin(linspace(0, 4*pi, 50))))';
+z_test = [logspace(1, 4, 49), inf]';
 % m_test = [10, 1000]';
 % z_test = [1000, inf]';
 
@@ -33,8 +33,8 @@ f_phs = f_obs;
 % rhoa_obs_log = d_obs_log_clear + (2.*rand(length(f_obs), 1)-1).*rhoa_obs_err_log;
 % phs_obs = phs_obs_clear + (2.*rand(length(f_obs), 1)-1).*phs_obs_err;
 % 高斯误差
-rhoa_obs_log = rhoa_obs_log_clear + randn(length(f_rhoa), 1).*(rhoa_obs_err_log);
-phs_obs = phs_obs_clear + randn(length(f_phs), 1).*(phs_obs_err);
+% rhoa_obs_log = rhoa_obs_log_clear + randn(length(f_rhoa), 1).*(rhoa_obs_err_log);
+% phs_obs = phs_obs_clear + randn(length(f_phs), 1).*(phs_obs_err);
 % 无
-% rhoa_obs_log = rhoa_obs_log_clear;
-% phs_obs = phs_obs_clear;
+rhoa_obs_log = rhoa_obs_log_clear;
+phs_obs = phs_obs_clear;

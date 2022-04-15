@@ -92,8 +92,8 @@ while model_ind < N
     z_log_new = z_log;
     n_new = n;
     
-    if flag < 0.34 % 扰动电阻率
-%     if mod(model_ind, 2) == 0
+%     if flag < 0.34 % 扰动电阻率
+    if mod(model_ind, 2) == 0
         n_rnd = randi(n_new);
         rho_log_new(n_rnd) = perturb_func(rho_log_new(n_rnd), 'rho', rho_mesh_log);
         operation = 1;
@@ -101,8 +101,8 @@ while model_ind < N
             continue;
         end
         lh = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log_new, z_log_new, k_weight, scale_factor);
-    elseif flag < 0.67 % 扰动分层位置
-%     elseif flag < 0.34
+%     elseif flag < 0.67 % 扰动分层位置
+    elseif flag < 0.34
         n_rnd = randi(n_new-1);
         z_log_new(n_rnd) = perturb_func(z_log_new(n_rnd), 'z', z_mesh_log);
         operation = 2;
@@ -112,7 +112,8 @@ while model_ind < N
         lh = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log_new, z_log_new, k_weight, scale_factor);
     else % 生灭
         n_rnd = randi(n_new-1);
-        if (rand < 0.5 || n_new >= n_range(2)) && n_new > n_range(1) % 灭
+%         if (rand < 0.5 || n_new >= n_range(2)) && n_new > n_range(1) % 灭
+        if (flag < 0.67 || n_new >= n_range(2)) && n_new > n_range(1)
             z_log_new(n_rnd) = [];
             rho_log_new(n_rnd) = [];
             operation = 3;
