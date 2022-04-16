@@ -1,4 +1,4 @@
-function lh = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log, z_log, k_weight, scale_factor)
+function [lh, phi_sqrt] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log, z_log, k_weight, scale_factor)
 %LIKELIHOOD_FUNC 似然函数
 % 
 
@@ -18,7 +18,8 @@ function lh = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log,
 
 % phi = norm((Cd^(-1/2))*([rhoa_log_standardize.*(2-k_weight); phs_standardize.*k_weight]-[rhoa_obs_log_standardize.*(2-k_weight); phs_obs_standardize.*k_weight]) .* k_err_vec)^2;
 % phi = norm((Cd^(-1/2))*([rhoa_log.*(2-k_weight); phs.*k_weight]-[rhoa_obs_log.*(2-k_weight); phs_obs.*k_weight]))^2 * k_err;
-phi = norm(((scale_factor^2*Cd)^(-1/2))*([rhoa_log.*(2-k_weight); phs.*k_weight]-[rhoa_obs_log.*(2-k_weight); phs_obs.*k_weight]))^2;
+phi_sqrt = norm(((scale_factor^2*Cd)^(-1/2))*([rhoa_log.*(2-k_weight); phs.*k_weight]-[rhoa_obs_log.*(2-k_weight); phs_obs.*k_weight]));
+phi = phi_sqrt^2;
 % phi = sum(((Cd^(-1/2))*([rho_log.*(2-k_weight); phs.*k_weight]-[rho_obs_log.*(2-k_weight); phs_obs.*k_weight]) .* k_err_vec).^2);
 % phi = norm((Cd^(-1/2))*([d_log; phs.*k_phs]-[d_obs_log; phs_obs.*k_phs]) .* k_err);
 % phi = norm((Cd^(-1/2))*(d_log-d_obs_log));
