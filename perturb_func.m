@@ -16,6 +16,7 @@ while olgv <= 0
         olgv = ilgv + randn * var_range;
     elseif strcmp(flag, 'z')
         olgv = ilgv + (rand + var_range(1)) * (var_range(2) - var_range(1));
+%         olgv = ilgv + randn * min([var_range(2)-ilgv, ilgv-var_range(1)]);
     end
     
     ovar = mesh_func(olgv, var_mesh);
