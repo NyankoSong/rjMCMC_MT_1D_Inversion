@@ -1,5 +1,14 @@
 model_grid_tmp = model_grid; % 选择要计算的model_grid
 
+%% 计算层面位置后验概率
+z_vec = zeros(z_n, 1);
+for j = N_iter_burn_in+1:N_iter_burn_in+N_iter
+    for i = 1:model_cell{j, 5}-1
+        z_vec(model_cell{j, 1}(i) == z_mesh_log) = z_vec(model_cell{j, 1}(i) == z_mesh_log) + model_cell{j, 3};
+    end
+end
+z_vec = z_vec / sum(z_vec);
+
 %% 计算峰值、期望值，统计层数
 rho_average_log = sum(repmat(log10(rho_mesh)', length(z_mesh), 1) .* (model_grid_tmp ./ repmat(sum(model_grid_tmp, 2), 1, length(rho_mesh))), 2);
 rho_average = 10.^rho_average_log;
@@ -8,7 +17,7 @@ rho_average = 10.^rho_average_log;
 rho_max = rho_mesh(model_max_ind);
 rho_max_log = log10(rho_max);
 
-model_n = [model_cell{:, 5}]';
+model_n = [model_cell{N_iter_burn_in+1:N_iter+N_iter_burn_in, 5}]';
 model_n_hist = zeros(max(model_n) - min(model_n) + 1, 2);
 for j = min(model_n):max(model_n)
     model_n_hist(j - min(model_n) + 1, :) = [j, sum(model_n(model_n == j)/j)];
@@ -54,5 +63,8 @@ model_conf_edge = 10.^model_conf_edge_log;
 %% 计算模型标准差（用高斯分布描述置信区间时使用，然而实际上并不服从高斯分布......）
 sigma = sum((model_grid_tmp ./ repmat(sum(model_grid_tmp, 2), 1, rho_n)) .* (repmat(rho_mesh_log', z_n, 1) - repmat(rho_average_log, 1, rho_n)).^2, 2) .^ (1/2);
 
+%% 归一化后验概率
+model_grid_tmp = model_grid_tmp ./ repmat(sum(model_grid_tmp, 2), 1, rho_n);
+
 %% 制图
-plot_mesh
+% plot_mesh

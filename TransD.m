@@ -15,7 +15,7 @@ function [model_cell, burn_in_model_grid, model_grid, end_flag, model_ind, model
 No_Cm_flag = 0;
 
 print_flag = 0; % 是否输出帧到./Frames/tmp
-plot_flag = 1; % 是否实时进行制图
+plot_flag = 0; % 是否实时进行制图
 
 if length(m_test) > 1
     test_flag = 1;
@@ -41,11 +41,11 @@ model_grid = zeros(mesh_layers_n, mesh_rho_n); % 后验概率密度矩阵
 % BOSITICK反演生成初始模型
 [m_bostick, z_bostick] = bostick_func(rhoa_obs_log, f_rhoa); % bostick反演
 n = 10; % 初始层数
-n_range = [3, 20]; % 层数范围
+n_range = [3, 30]; % 层数范围
 z_log = [mesh_func(linspace(2, 4, n-1), z_mesh_log); inf];
 rho_log = [interp1(z_bostick, m_bostick, z_log(1:end-1)); 0];
 rho_log(end) = rho_log(end-1);
-rho_log = mesh_func(rho_log, rho_mesh_log);
+rho_log = mesh_func(rho_log, rho_mesh_log(2:end-1));
 
 % 初始化参数
 burn_in_flag = 0;
@@ -87,6 +87,10 @@ refresh_ind = 0;
 
 t_func = tic;
 while model_ind + model_burn_in_ind - 1 < N
+    if burn_in_flag == 1 % 重新计算对应层的标准差
+        rho_refresh_std_vec_new = rho_refresh_std_vec;
+        rho_refresh_mean_vec_new = rho_refresh_mean_vec;
+    end
     perturb_flag = rand;
     rho_log_new = rho_log;
     z_log_new = z_log;
@@ -94,11 +98,12 @@ while model_ind + model_burn_in_ind - 1 < N
     
     if burn_in_flag ~= 2
         if mod(model_ind, 2) == 0
+%         if perturb_flag < 0.5
             n_rnd = randi(n_new);
             
 %             rho_log_new(n_rnd) = perturb_func(rho_log_new(n_rnd), 'rho', rho_mesh_log);
             if burn_in_flag == 1
-                rho_perturb_std = model_scale_factor * rho_refresh_std_vec(n_rnd);
+                rho_perturb_std = model_scale_factor * rho_refresh_std_vec_new(n_rnd);
             end
             rho_log_new(n_rnd) = perturb_func(rho_log_new(n_rnd), 'rho', rho_mesh_log, rho_perturb_std);
             
@@ -107,7 +112,7 @@ while model_ind + model_burn_in_ind - 1 < N
                 continue;
             end
             [likelihood_probability, L2_err] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log_new, z_log_new, k_weight, data_scale_factor);
-        elseif perturb_flag < 0.34
+        elseif perturb_flag < 1/3
             n_rnd = randi(n_new-1);
             
             if n_rnd == 1
@@ -120,13 +125,13 @@ while model_ind + model_burn_in_ind - 1 < N
             z_log_new(n_rnd) = perturb_func(z_log_new(n_rnd), 'z', z_mesh_log, z_perturb_range);
             
             operation = 2;
-            if z_log_new(1) < z_mesh_log(2) || min(z_log_new(2:end)-z_log_new(1:end-1)) < z_mesh_log(2)
+            if z_log_new(1) < z_mesh_log(2) || min(z_log_new(2:end)-z_log_new(1:end-1)) < z_mesh_log(2) || max(z_log_new) > z_mesh_log(end-1)
                 continue;
             end
             [likelihood_probability, L2_err] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log_new, z_log_new, k_weight, data_scale_factor);
         else % 生灭（当前生灭策略实质上并不是在对数深度上均匀分布的，而是与层面“密度”有关）
             n_rnd = randi(n_new-1);
-            if (perturb_flag < 0.67 || n_new >= n_range(2)) && n_new > n_range(1)
+            if (perturb_flag < 2/3 || n_new >= n_range(2)) && n_new > n_range(1)
                 z_log_new(n_rnd) = [];
                 rho_log_new(n_rnd) = [];
                 operation = 3;
@@ -136,20 +141,23 @@ while model_ind + model_burn_in_ind - 1 < N
             else % 生，使第一层和最后一层可以生
                 if randi(n_new) == n_new % 使最后一层可以生
                     z_log_new = [z_log_new(1:end-1); mesh_func(mean([z_log_new(end-1), z_mesh_log(end)]), z_mesh_log); z_log_new(end)];
+%                     z_log_new = [z_log_new(1:end-1); mesh_func(rand*(z_mesh_log(end)-z_log_new(end-1))+z_log_new(end-1), z_mesh_log); z_log_new(end)];
                     if burn_in_flag == 1
-                        rho_perturb_std = model_scale_factor * rho_refresh_std_vec(end);
+                        rho_perturb_std = model_scale_factor * rho_refresh_std_vec_new(end);
                     end
                     rho_log_new = [rho_log_new(1:end-1); perturb_func(rho_log_new(end), 'rho', rho_mesh_log, rho_perturb_std); rho_log_new(end)];
                 elseif n_rnd > 1
                     z_log_new = [z_log_new(1:n_rnd-1); mesh_func(mean(z_log_new(n_rnd-1:n_rnd)), z_mesh_log); z_log_new(n_rnd:end)];
+%                     z_log_new = [z_log_new(1:n_rnd-1); mesh_func(rand*(z_log_new(n_rnd)-z_log_new(n_rnd-1))+z_log_new(n_rnd-1), z_mesh_log); z_log_new(n_rnd:end)];
                     if burn_in_flag == 1
-                        rho_perturb_std = model_scale_factor * rho_refresh_std_vec(n_rnd);
+                        rho_perturb_std = model_scale_factor * rho_refresh_std_vec_new(n_rnd);
                     end
                     rho_log_new = [rho_log_new(1:n_rnd-1); perturb_func(rho_log_new(n_rnd), 'rho', rho_mesh_log, rho_perturb_std); rho_log_new(n_rnd:end)];
                 else % 使第一层可以生
                     z_log_new = [mesh_func(mean([0, z_log_new(n_rnd)]), z_mesh_log); z_log_new(n_rnd:end)];
+%                     z_log_new = [mesh_func(rand*z_mesh_log(n_rnd), z_mesh_log); z_log_new(n_rnd:end)];
                     if burn_in_flag == 1
-                        rho_perturb_std = model_scale_factor * rho_refresh_std_vec(n_rnd);
+                        rho_perturb_std = model_scale_factor * rho_refresh_std_vec_new(n_rnd);
                     end
                     rho_log_new = [perturb_func(rho_log_new(n_rnd), 'rho', rho_mesh_log, rho_perturb_std); rho_log_new(n_rnd:end)];
                 end
@@ -168,18 +176,19 @@ while model_ind + model_burn_in_ind - 1 < N
         z_mesh_ind = zeros(n_new+1, 1);
         z_mesh_ind(1) = 1;
         z_mesh_ind(end) = mesh_layers_n;
-        rho_refresh_std_vec = zeros(n_new, 1);
-        rho_refresh_mean_vec = zeros(n_new, 1);
+        rho_refresh_std_vec_new = zeros(n_new, 1);
+        rho_refresh_mean_vec_new = zeros(n_new, 1);
         for z_ind = 2:n_new
             z_mesh_ind(z_ind) = find(z_log_new(z_ind-1) == z_mesh_log);
-            rho_refresh_std_vec(z_ind-1) = mean(rho_refresh_layers_std_vec(z_mesh_ind(z_ind-1):z_mesh_ind(z_ind)));
-            rho_refresh_mean_vec(z_ind-1) = mean(rho_refresh_layers_mean_vec(z_mesh_ind(z_ind-1):z_mesh_ind(z_ind)));
+            rho_refresh_std_vec_new(z_ind-1) = mean(rho_refresh_layers_std_vec(z_mesh_ind(z_ind-1):z_mesh_ind(z_ind)));
+            rho_refresh_mean_vec_new(z_ind-1) = mean(rho_refresh_layers_mean_vec(z_mesh_ind(z_ind-1):z_mesh_ind(z_ind)));
         end
-        rho_refresh_std_vec(end) = mean(rho_refresh_layers_std_vec(z_mesh_ind(end-1):z_mesh_ind(end)));
-        rho_refresh_mean_vec(end) = mean(rho_refresh_layers_mean_vec(z_mesh_ind(end-1):z_mesh_ind(end)));
-        Cm = generate_cov(n_new, z_log_new, z_smooth_log, rho_refresh_std_vec.^2);
+        rho_refresh_std_vec_new(end) = mean(rho_refresh_layers_std_vec(z_mesh_ind(end-1):z_mesh_ind(end)));
+        rho_refresh_mean_vec_new(end) = mean(rho_refresh_layers_mean_vec(z_mesh_ind(end-1):z_mesh_ind(end)));
+        Cm = generate_cov(n_new, z_log_new, z_smooth_log, rho_refresh_std_vec_new.^2);
+        
 %         prior_probability = (2*pi*model_scale_factor^2)^(-n_new/2) * det(model_scale_factor^2*Cm)^(-1/2) * exp(-(rho_log_new - rho_refresh_mean_vec)'*(model_scale_factor^2*Cm)^(-1)*(rho_log_new - rho_refresh_mean_vec) * lambda/2);
-        prior_probability = exp(-norm((model_scale_factor^2*Cm)^(-1/2)*(rho_log_new - rho_refresh_mean_vec))^2 * lambda/2);
+        prior_probability = exp(-norm((model_scale_factor^2*Cm)^(-1/2)*(rho_log_new - rho_refresh_mean_vec_new))^2 * lambda/2);
     else
         prior_probability = 1;
     end
@@ -199,6 +208,10 @@ while model_ind + model_burn_in_ind - 1 < N
         ppd = ppd_new;
         n = n_new;
         cnt_rejections = 0;
+        if burn_in_flag > 0
+            rho_refresh_std_vec = rho_refresh_std_vec_new;
+            rho_refresh_mean_vec = rho_refresh_mean_vec_new;
+        end
         
         if burn_in_flag == 2
             burn_in_flag = 1;
@@ -219,10 +232,9 @@ while model_ind + model_burn_in_ind - 1 < N
         % 计算过去N_end个模型每层的标准差和平均值
 %         if model_ind >= N_end && burn_in_flag == 0 % Cm只使用burn_in数据
         if model_ind >= N_end % Cm实时更新
-%             if burn_in_flag == 0
-                rho_refresh_layers_std_vec = std(rho_refresh_mat);
-%             end
-            rho_refresh_layers_mean_vec = mean(rho_refresh_mat);
+            rho_refresh_layers_std_vec = std(rho_refresh_mat);
+%             rho_refresh_layers_mean_vec = mean(rho_refresh_mat);
+            rho_refresh_layers_mean_vec = rho_max_log; % 用rho_max_log替代
         end
         
         if mod(model_ind, N_refresh) == 0
@@ -390,12 +402,15 @@ while model_ind + model_burn_in_ind - 1 < N
 %             end
 
         end
+
     else
         cnt_rejections = cnt_rejections + 1;
         if mod(cnt_rejections, 1E3) == 0
             disp(['已连续拒绝', num2str(cnt_rejections), '个模型'])
-%             end_flag = 2;
-%             break
+            if cnt_rejections >= 1E4
+                end_flag = 2;
+                break
+            end
         end
     end
 end

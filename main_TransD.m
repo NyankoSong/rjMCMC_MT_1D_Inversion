@@ -4,7 +4,7 @@ z_n = 100;
 rho_n = 100;
 
 z_mesh = logspace(0, 5, z_n)';
-rho_mesh = logspace(0, 6, rho_n)';
+rho_mesh = logspace(0, 5, rho_n)';
 z_mesh_log = log10(z_mesh);
 rho_mesh_log = log10(rho_mesh);
 
@@ -12,7 +12,7 @@ rho_mesh_log = log10(rho_mesh);
 N = 1E6; % 最大迭代次数
 N_refresh = 1E3; % 刷新间隔次数（同时也是误差标准差的采样长度）
 rms_target = 1; % 目标RMS误差
-burn_in_std_target = 2; % 预热阶段误差标准差的标准差上限
+burn_in_std_target = 10; % 预热阶段误差标准差的标准差上限
 std_target = 1; % 误差标准差的标准差上限
 N_end = 1E4; % 判定终止范围（必须是N_refresh的整数倍）
 k_punish = 1; % 罚参数（<1时为倾向更少层数）
@@ -25,7 +25,7 @@ z_smooth_log = 0.1; % 强相关层间距（暂定为1σ）
 
 %% 调用可变维函数
 t_main = tic;
-[model_cell, burn_in_model_grid, model_grid, end_flag, N_iter, N_iter_burn_in] = TransD(rho_mesh, z_mesh, f_rhoa, f_phs, rhoa_obs_log, rhoa_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, burn_in_std_target, std_target, N_end, k_punish, k_weight, burn_in_data_scale_factor, main_data_scale_factor, model_scale_factor, lambda, z_smooth_log, m_test, z_test);
+[model_cell, burn_in_model_grid, model_grid, end_flag, N_iter, N_iter_burn_in] = TransD(rho_mesh, z_mesh, f_rhoa, f_phs, rhoa_obs_log, rhoa_obs_err_log, phs_obs, phs_obs_err, N, N_refresh, rms_target, burn_in_std_target, std_target, N_end, k_punish, k_weight, burn_in_data_scale_factor, main_data_scale_factor, model_scale_factor, lambda, z_smooth_log, rho_test, z_test);
 t = toc(t_main);
 
 if end_flag == 0
