@@ -126,9 +126,9 @@ xticklabels(num2str(model_n_hist(1:5:end, 1) - (model_n_hist(1, 1) - 5)));
 figure(3)
 set(figure(3), 'Position', [50, 200, 960, 480])
 
-z_mesh_occam = logspace(-1,5,25)';
+z_mesh_occam = logspace(0,4,50)';
 z_mesh_occam_mod = [z_mesh_occam(1, 1); z_mesh_occam(2:end)-z_mesh_occam(1:end-1)];
-z_mesh_occam_mod = [z_mesh_occam_mod, 2*ones(25, 1)];
+z_mesh_occam_mod = [z_mesh_occam_mod, 2*ones(50, 1)];
 
 subplot(1, 3, 1)
 stairs(10.^resi(1:end-1), z_mesh_occam, 'LineWidth', 1)
@@ -138,9 +138,9 @@ set(gca, 'YDir', 'reverse');
 axis([rho_mesh(1), rho_mesh(end), z_mesh(1), z_mesh(end)]);
 grid on
 hold on
-plot([rho_test(1), rho_test(1)], [z_mesh(1), z_test(1)], 'k--', 'LineWidth', 1)
-stairs(rho_test, z_test, 'k--', 'LineWidth', 1);
-plot([rho_test(end), rho_test(end)], [z_test(end-1), z_mesh(end)], 'k--', 'LineWidth', 1);
+% plot([rho_test(1), rho_test(1)], [z_mesh(1), z_test(1)], 'k--', 'LineWidth', 1)
+% stairs(rho_test, z_test, 'k--', 'LineWidth', 1);
+% plot([rho_test(end), rho_test(end)], [z_test(end-1), z_mesh(end)], 'k--', 'LineWidth', 1);
 xticks(logspace(log10(rho_mesh(1)), log10(rho_mesh(end)), log10(rho_mesh(end))+1))
 legend('光滑反演', '测试模型')
 title('光滑反演')

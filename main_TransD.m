@@ -1,10 +1,10 @@
 %% 初始化参数
 % 生成网格
 z_n = 100;
-rho_n = 100;
+rho_n = 50;
 
-z_mesh = logspace(0, 5, z_n)';
-rho_mesh = logspace(0, 5, rho_n)';
+z_mesh = logspace(0, 4, z_n)';
+rho_mesh = logspace(0, 4, rho_n)';
 z_mesh_log = log10(z_mesh);
 rho_mesh_log = log10(rho_mesh);
 
@@ -12,8 +12,8 @@ rho_mesh_log = log10(rho_mesh);
 N = 1E6; % 最大迭代次数
 N_refresh = 1E3; % 刷新间隔次数（同时也是误差标准差的采样长度）
 rms_target = 1; % 目标RMS误差
-burn_in_std_target = 10; % 预热阶段误差标准差的标准差上限
-std_target = 1; % 误差标准差的标准差上限
+burn_in_std_target = 1; % 预热阶段误差标准差的标准差上限
+std_target = 0.01; % 误差标准差的标准差上限
 N_end = 1E4; % 判定终止范围（必须是N_refresh的整数倍）
 k_punish = 1; % 罚参数（<1时为倾向更少层数）
 k_weight = 1; % 权重系数（<1时为视电阻率高权重）
@@ -21,7 +21,7 @@ burn_in_data_scale_factor = 2; % 预热阶段数据协方差矩阵尺度因子
 main_data_scale_factor = 1; % 数据协方差矩阵尺度因子
 model_scale_factor = 1; % 模型协方差矩阵尺度因子
 lambda = 1; % 先验权系数
-z_smooth_log = 0.1; % 强相关层间距（暂定为1σ）
+z_smooth_log = 0; % 强相关层间距（暂定为1σ）
 
 %% 调用可变维函数
 t_main = tic;

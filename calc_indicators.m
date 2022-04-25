@@ -67,4 +67,6 @@ sigma = sum((model_grid_tmp ./ repmat(sum(model_grid_tmp, 2), 1, rho_n)) .* (rep
 model_grid_tmp = model_grid_tmp ./ repmat(sum(model_grid_tmp, 2), 1, rho_n);
 
 %% 制图
+z_range = [z_mesh(1), z_mesh(end)]; % 坐标轴范围
+rho_range = [rho_mesh(1), rho_mesh(end)];
 % plot_mesh

@@ -15,7 +15,7 @@ function [model_cell, burn_in_model_grid, model_grid, end_flag, model_ind, model
 No_Cm_flag = 0;
 
 print_flag = 0; % 是否输出帧到./Frames/tmp
-plot_flag = 0; % 是否实时进行制图
+plot_flag = 1; % 是否实时进行制图
 
 if length(m_test) > 1
     test_flag = 1;
@@ -61,7 +61,7 @@ data_scale_factor = burn_in_data_scale_factor;
 % 生成数据协方差矩阵
 Cd = diag([rhoa_obs_err_log.^2; phs_obs_err.^2]);
 
-[likelihood_probability, L2_err] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log, z_log, k_weight, data_scale_factor);
+[likelihood_probability, SE] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log, z_log, k_weight, data_scale_factor);
 
 % rho_refresh_layers_std_vec = ones(mesh_layers_n, 1);
 % rho_refresh_std_vec = ones(n, 1); % 初始模型方差
@@ -79,8 +79,8 @@ model_cell{1, 3} = ppd; % PPD
 model_cell{1, 4} = cnt_rejections; % 拒绝次数
 model_cell{1, 5} = n; % 层数
 model_cell{1, 6} = operation; % 操作类型
-model_cell{model_ind, 7} = L2_err; % L2范数误差
-phi_mat = [L2_err; zeros(N_end-1, 1)]; % L2范数误差向量
+model_cell{model_ind, 7} = SE; % L2范数误差
+phi_mat = [SE; zeros(N_end-1, 1)]; % L2范数误差向量
 phi_std_mean_mat = zeros(N_end/N_refresh, 2); % 误差标准差及平均值
 rho_refresh_mat = zeros(N_end, mesh_layers_n); % 记录过去N_end次迭代的模型
 refresh_ind = 0;
@@ -111,7 +111,7 @@ while model_ind + model_burn_in_ind - 1 < N
             if min(rho_log_new) < rho_mesh_log(2) || max(rho_log_new) > rho_mesh_log(end-1)
                 continue;
             end
-            [likelihood_probability, L2_err] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log_new, z_log_new, k_weight, data_scale_factor);
+            [likelihood_probability, SE] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log_new, z_log_new, k_weight, data_scale_factor);
         elseif perturb_flag < 1/3
             n_rnd = randi(n_new-1);
             
@@ -128,7 +128,7 @@ while model_ind + model_burn_in_ind - 1 < N
             if z_log_new(1) < z_mesh_log(2) || min(z_log_new(2:end)-z_log_new(1:end-1)) < z_mesh_log(2) || max(z_log_new) > z_mesh_log(end-1)
                 continue;
             end
-            [likelihood_probability, L2_err] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log_new, z_log_new, k_weight, data_scale_factor);
+            [likelihood_probability, SE] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log_new, z_log_new, k_weight, data_scale_factor);
         else % 生灭（当前生灭策略实质上并不是在对数深度上均匀分布的，而是与层面“密度”有关）
             n_rnd = randi(n_new-1);
             if (perturb_flag < 2/3 || n_new >= n_range(2)) && n_new > n_range(1)
@@ -136,7 +136,7 @@ while model_ind + model_burn_in_ind - 1 < N
                 rho_log_new(n_rnd) = [];
                 operation = 3;
                 n_new = n_new - 1;
-                [likelihood_probability, L2_err] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log_new, z_log_new, k_weight, data_scale_factor);
+                [likelihood_probability, SE] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log_new, z_log_new, k_weight, data_scale_factor);
                 likelihood_probability = likelihood_probability * (2-k_punish);
             else % 生，使第一层和最后一层可以生
                 if randi(n_new) == n_new % 使最后一层可以生
@@ -163,12 +163,12 @@ while model_ind + model_burn_in_ind - 1 < N
                 end
                 operation = 4;
                 n_new = n_new + 1;
-                [likelihood_probability, L2_err] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log_new, z_log_new, k_weight, data_scale_factor);
+                [likelihood_probability, SE] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log_new, z_log_new, k_weight, data_scale_factor);
                 likelihood_probability = likelihood_probability * k_punish;
             end
         end
     else
-        [likelihood_probability, L2_err] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log_new, z_log_new, k_weight, data_scale_factor);
+        [likelihood_probability, SE] = likelihood_func(Cd, rhoa_obs_log, phs_obs, f_rhoa, f_phs, rho_log_new, z_log_new, k_weight, data_scale_factor);
     end
 
     if burn_in_flag > 0
@@ -202,7 +202,7 @@ while model_ind + model_burn_in_ind - 1 < N
         model_cell{model_ind+model_burn_in_ind-1, 4} = cnt_rejections;
         model_cell{model_ind+model_burn_in_ind-1, 5} = n_new;
         model_cell{model_ind+model_burn_in_ind-1, 6} = operation;
-        model_cell{model_ind+model_burn_in_ind-1, 7} = L2_err;
+        model_cell{model_ind+model_burn_in_ind-1, 7} = SE;
         rho_log = rho_log_new;
         z_log = z_log_new;
         ppd = ppd_new;
@@ -217,7 +217,7 @@ while model_ind + model_burn_in_ind - 1 < N
             burn_in_flag = 1;
         end
         
-        phi_mat = [phi_mat(2:end); L2_err]; % 填充最小二乘误差矩阵
+        phi_mat = [phi_mat(2:end); SE]; % 填充最小二乘误差矩阵
         rho_refresh_mat(1:end-1, :) = rho_refresh_mat(2:end, :);
         
         for mesh_layers_ind = 1:mesh_layers_n % 计算后验概率
@@ -234,7 +234,7 @@ while model_ind + model_burn_in_ind - 1 < N
         if model_ind >= N_end % Cm实时更新
             rho_refresh_layers_std_vec = std(rho_refresh_mat);
 %             rho_refresh_layers_mean_vec = mean(rho_refresh_mat);
-            rho_refresh_layers_mean_vec = rho_max_log; % 用rho_max_log替代
+            rho_refresh_layers_mean_vec = rho_average_log; % 用rho_max_log替代
         end
         
         if mod(model_ind, N_refresh) == 0
