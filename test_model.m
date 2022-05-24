@@ -19,18 +19,28 @@
 % z_test = [2000, 4000, inf]';
 
 % 极端值测试模型
-rho_test = [250, 25, 100, 10, 25]';
-z_test = [600, 2000, 6000, 10000, inf]';
+% rho_test = [250, 25, 100, 10, 25]';
+% z_test = [600, 2000, 6000, 10000, inf]';
 
-test_flag = 1;
+% 测试用实测数据
+fid = fopen('.\occam1dmt-main\examples\aushield.dat');
+tmp = textscan(fid,'%f %f %f %f %f','CommentStyle', '#');
+fclose(fid);
+f_obs = 1./flipud(tmp{1});
+rhoa_obs_log = flipud(tmp{2});
+rhoa_obs_err_log = flipud(tmp{3}); 
+phs_obs = flipud(tmp{4});
+phs_obs_err = flipud(tmp{5}); 
+
+test_flag = 0;
 
 %% 正演
-f_obs = logspace(-3, 3, 20)';
-[rhoa_obs_log_clear, phs_obs_clear] = forward_func(log10(rho_test), log10(z_test), f_obs);
+% f_obs = logspace(-3, 3, 20)';
+% [rhoa_obs_log_clear, phs_obs_clear] = forward_func(log10(rho_test), log10(z_test), f_obs);
 
 %% 生成误差
-rhoa_obs_err_log = 0.1 * rhoa_obs_log_clear;
-phs_obs_err = ones(length(f_obs), 1) * 5;
+% rhoa_obs_err_log = 0.1 * rhoa_obs_log_clear;
+% phs_obs_err = ones(length(f_obs), 1) * 5;
 % rhoa_obs_err_log = rand(length(f_obs), 1) .* 0.3 .* rhoa_obs_log_clear;
 % phs_obs_err = rand(length(f_obs), 1) .* 20;
 
@@ -46,8 +56,8 @@ f_phs = f_obs;
 % rhoa_obs_log = d_obs_log_clear + (2.*rand(length(f_obs), 1)-1).*rhoa_obs_err_log;
 % phs_obs = phs_obs_clear + (2.*rand(length(f_obs), 1)-1).*phs_obs_err;
 % 高斯误差
-rhoa_obs_log = rhoa_obs_log_clear + randn(length(f_rhoa), 1).*(rhoa_obs_err_log);
-phs_obs = phs_obs_clear + randn(length(f_phs), 1).*(phs_obs_err);
+% rhoa_obs_log = rhoa_obs_log_clear + randn(length(f_rhoa), 1).*(rhoa_obs_err_log);
+% phs_obs = phs_obs_clear + randn(length(f_phs), 1).*(phs_obs_err);
 % 无
 % rhoa_obs_log = rhoa_obs_log_clear;
 % phs_obs = phs_obs_clear;

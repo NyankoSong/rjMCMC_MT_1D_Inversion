@@ -3,10 +3,15 @@
 z_n = 100;
 rho_n = 50;
 
-z_mesh = logspace(0, 4, z_n)';
+z_mesh = logspace(0, 5, z_n)';
 rho_mesh = logspace(0, 4, rho_n)';
 z_mesh_log = log10(z_mesh);
 rho_mesh_log = log10(rho_mesh);
+
+if test_flag == 0
+    rho_test = 0;
+    z_test = 0;
+end
 
 % 规定参数
 N = 1E6; % 最大迭代次数
